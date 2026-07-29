@@ -35,7 +35,7 @@ No UI framework, animation library, analytics, trackers, or cookies.
 
 ## Local setup
 
-Requires Node.js 20+ (this machine developed on Node 20/22-compatible tooling).
+Requires Node.js 20+ (CI builds on Node 22).
 
 ```bash
 npm install
@@ -69,7 +69,7 @@ pass.
 Deployment is automated by [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml):
 
 1. Triggers on every push to `main` (and manual **Run workflow**).
-2. Installs Node 20, runs `npm ci`, lint, type-check, and `npm run build`.
+2. Installs Node 22, runs `npm ci`, lint, type-check, and `npm run build`.
 3. Uploads `dist/` and deploys it with the official GitHub Pages actions.
 
 The build's SPA deep-link handling (`public/404.html` + a restore snippet in
