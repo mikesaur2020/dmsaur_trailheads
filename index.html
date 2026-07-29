@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="DMSaur Trailheads — share the everyday problems and unmet needs that might inspire future DMSaur apps. Ideas are easy. Learning is the adventure."
+    />
+    <title>DMSaur Trailheads</title>
+    <!--
+      Single Page Apps for GitHub Pages — path restore.
+      Pairs with public/404.html. GitHub Pages has no server-side rewrite, so a
+      deep link like /ideas/example (or a browser refresh on it) returns 404.html,
+      which stashes the intended path in the query string and redirects here. This
+      snippet rewrites the URL back to the real path before React Router mounts.
+      Safe on the custom domain root (base '/'). See docs/ARCHITECTURE.md.
+    -->
+    <script type="text/javascript">
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search
+            .slice(1)
+            .split('&')
+            .map(function (s) {
+              return s.replace(/~and~/g, '&')
+            })
+            .join('?')
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          )
+        }
+      })(window.location)
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

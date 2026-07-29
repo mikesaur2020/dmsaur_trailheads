@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DMSaur Trailheads">
+  <rect width="64" height="64" rx="14" fill="#3d6079" />
+  <!-- topographic contour lines -->
+  <g fill="none" stroke="#8fb1c6" stroke-width="1.6" opacity="0.55">
+    <path d="M6 44c8-3 14-3 22 0s16 3 30-2" />
+    <path d="M8 52c8-3 14-3 22 0s14 2 28-3" />
+  </g>
+  <!-- trail marker peak -->
+  <path d="M32 14l14 26H18z" fill="#f4c04e" />
+  <path d="M32 24l7 16H25z" fill="#3d6079" />
+  <!-- trailhead dot -->
+  <circle cx="32" cy="46" r="3.4" fill="#fbfaf7" />
+</svg>

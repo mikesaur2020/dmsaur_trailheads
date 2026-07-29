@@ -1,0 +1,122 @@
+/*
+ * DMSaur Trailheads — design tokens.
+ *
+ * Semantic tokens are defined as runtime CSS variables on :root (light, the
+ * primary presentation) and overridden under prefers-color-scheme: dark. The
+ * @theme block maps them into Tailwind so utilities like `bg-surface`,
+ * `text-muted`, `border-line`, and `text-brand` resolve to the live variables
+ * and switch automatically with the OS appearance. No JS toggle in this phase.
+ *
+ * Outdoors-inspired, trustworthy, uncluttered: DMSaur slate blue (matching
+ * dmsaur.com), warm parchment, a restrained amber "trail marker" accent, plus
+ * reserved status colors.
+ */
+
+:root {
+  /* Surfaces & text */
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --surface-2: #f4f1ea;
+  --line: #e4ded2;
+  --text: #1b2620;
+  --muted: #5c6b62;
+
+  /* Brand — DMSaur slate blue (from dmsaur.com) */
+  --brand: #3d6079;
+  --brand-strong: #2e4a5e;
+  --brand-soft: #e6eef3;
+  --brand-contrast: #ffffff;
+
+  /* Accent — trail-marker amber */
+  --accent: #b9791a;
+  --accent-soft: #f7ecd6;
+
+  /* Status (product journey) */
+  --status-submitted: #6b7280;
+  --status-reviewing: #b9791a;
+  --status-researching: #7c5cbf;
+  --status-prototyping: #2563a8;
+  --status-building: #0e7490;
+  --status-beta: #b45309;
+  --status-released: #3d6079;
+
+  /* Community signals */
+  --signal-have: #2563a8;
+  --signal-use: #0e7490;
+  --signal-test: #7c5cbf;
+  --signal-pay: #3d6079;
+
+  --ring: #3d6079;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1512;
+    --surface: #131e19;
+    --surface-2: #18251f;
+    --line: #26352d;
+    --text: #eaf1ec;
+    --muted: #9db0a6;
+
+    --brand: #7ea9c6;
+    --brand-strong: #9cc3dc;
+    --brand-soft: #17242c;
+    --brand-contrast: #08131a;
+
+    --accent: #e0a63a;
+    --accent-soft: #2a2213;
+
+    --status-submitted: #9aa4ad;
+    --status-reviewing: #e0a63a;
+    --status-researching: #b39ae0;
+    --status-prototyping: #6ea8e0;
+    --status-building: #5cb8d6;
+    --status-beta: #e0a63a;
+    --status-released: #7ea9c6;
+
+    --signal-have: #6ea8e0;
+    --signal-use: #5cb8d6;
+    --signal-test: #b39ae0;
+    --signal-pay: #7ea9c6;
+
+    --ring: #7ea9c6;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-contrast: var(--brand-contrast);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-status-submitted: var(--status-submitted);
+  --color-status-reviewing: var(--status-reviewing);
+  --color-status-researching: var(--status-researching);
+  --color-status-prototyping: var(--status-prototyping);
+  --color-status-building: var(--status-building);
+  --color-status-beta: var(--status-beta);
+  --color-status-released: var(--status-released);
+
+  --color-signal-have: var(--signal-have);
+  --color-signal-use: var(--signal-use);
+  --color-signal-test: var(--signal-test);
+  --color-signal-pay: var(--signal-pay);
+
+  --color-ring: var(--ring);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
