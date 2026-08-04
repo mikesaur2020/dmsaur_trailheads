@@ -20,16 +20,29 @@ Frontend-only foundation.
 
 **No** backend, auth, database, email, AI, or persistence.
 
-## Phase 1 — Supabase and database 🔭
+## Phase 1 — Supabase foundation ✅ (current)
 
-- Introduce a Supabase project (PostgreSQL).
-- Define schema mirroring `src/types` (ideas, contributors, signals, status
-  history).
-- Wire the client to read real data using the public **anon** key only.
-- Establish Row Level Security (RLS) from day one.
+Backend **foundation only** — no UI or behavior change; the app still renders
+mock data.
 
-## Phase 2 — Anonymous idea submissions 🔭
+- ✅ Supabase tooling: `@supabase/supabase-js` + the Supabase CLI, local stack
+  via Docker (`supabase/config.toml`).
+- ✅ Initial schema in `supabase/migrations/`, mirroring `src/types` (ideas,
+  contributors, signals, status history) + enums.
+- ✅ `seed.sql` mirroring the Phase 0 mock data.
+- ✅ Row Level Security enabled on every table from day one — public read for
+  `ideas` / `idea_signals` / `idea_status_events`; `contributors` locked (no
+  public policy); no write policies anywhere.
+- ✅ A guarded, typed client (`src/lib/supabase.ts`) reading `VITE_SUPABASE_*`,
+  **not yet imported by any page**.
 
+Deferred to Phase 2: wiring pages to read live data, and linking the local
+schema to a hosted Supabase project.
+
+## Phase 2 — Live data + anonymous idea submissions 🔭
+
+- Wire the client to **read** real data using the public **anon** key, replacing
+  mock data page by page (behind the same UI).
 - Turn the demonstration wizard into a real submission that writes to the
   database.
 - Allow submissions without an account, honoring recognition preferences.

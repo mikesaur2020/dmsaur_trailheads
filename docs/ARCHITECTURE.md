@@ -78,6 +78,59 @@ variable — paths are derived from `import.meta.env.BASE_URL`.
   and any future AI-assisted analysis. These run server-side, never in the
   browser.
 
+## Database schema (Phase 1)
+
+The initial schema lives in `supabase/migrations/` and mirrors the domain types
+in `src/types/index.ts`. It is created as a foundation only — the app still
+renders mock data and is not yet wired to these tables.
+
+**Tables** (all in `public`):
+
+- `contributors` — contributor profiles.
+- `ideas` — problem-focused ideas (with optional extended-detail columns).
+- `idea_signals` — count-based community signals, one row per `(idea, key)`.
+- `idea_status_events` — the status-history timeline.
+
+Enums (`idea_status`, `category`, `recognition_preference`,
+`willingness_to_pay`, `community_signal_key`) use the exact string values of the
+matching TypeScript unions, so the domain types stay the single source of truth.
+`supabase/seed.sql` mirrors the Phase 0 mock data.
+
+### Row Level Security
+
+RLS is enabled on **every** table from the first migration. Read access is
+granted only where records are meant to be public:
+
+- **Public read** (`anon` + `authenticated`, `SELECT` only): `ideas`,
+  `idea_signals`, `idea_status_events` — these power the anonymous Browse Ideas
+  experience.
+- **`contributors` is intentionally locked** — RLS is on but there is **no**
+  public policy, so the public roles can read nothing. Contributor records mix
+  public-facing profile fields with data that is or will become private.
+
+There are **no** insert/update/delete policies in this phase, so submission,
+voting, and comments remain impossible through the public roles. Those flows
+arrive later with their own explicit, reviewed policies.
+
+#### Future: public contributor profiles
+
+Before any contributor data is exposed publicly, we will design an explicit
+separation between **private contributor identity** and a **safe public
+projection** — e.g. a `public_contributor_profiles` view (or equivalent) that
+surfaces only approved fields such as display name, public blurb, recognition
+preference, badges, and public statistics. Email addresses, authentication
+identifiers, contact permission, and any other private fields must never be
+exposed through public policies.
+
+#### Community signals are not the final voting model
+
+`idea_signals` is a **count-based** table carried over from the Phase 0 mock
+data, kept for compatibility and seeding. It is **not** how real voting will
+work. Before community voting is enabled, signals will be redesigned as
+individual contributor/visitor signal records (one row per person per signal)
+with appropriate uniqueness constraints and RLS, and totals derived through a
+query or a safe aggregate view. That redesign is out of scope for Phase 1.
+
 ## Secrets and the client bundle — the critical rule
 
 Vite inlines every `VITE_`-prefixed variable into the JavaScript bundle that

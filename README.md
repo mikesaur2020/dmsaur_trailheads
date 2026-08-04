@@ -54,6 +54,11 @@ The dev server prints a local URL (default http://localhost:5173).
 | `npm run lint`      | Run ESLint (TypeScript + React Hooks + jsx-a11y).       |
 | `npm run typecheck` | Type-check without emitting.                            |
 | `npm run check`     | Lint + type-check + build (the same gates CI runs).     |
+| `npm run db:start`  | Start the local Supabase stack (Docker).                |
+| `npm run db:stop`   | Stop the local Supabase stack.                          |
+| `npm run db:reset`  | Recreate the local DB: apply all migrations + `seed.sql`.|
+| `npm run db:diff`   | Diff local DB changes into a new migration.             |
+| `npm run gen:types` | Regenerate `src/types/database.ts` from the local DB.   |
 
 ### Validating before you push
 
@@ -88,13 +93,45 @@ site ever needs to run from the GitHub project-pages subpath instead
 `VITE_BASE=/dmsaur_trailheads/`. The full checklist lives in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Future: Supabase
+## Supabase (Phase 1 — foundation)
 
-Later phases will add a Supabase backend (PostgreSQL, passwordless magic-link
-auth, Row Level Security) for real submissions, contributor identity, and
-community signals. The client will only ever hold the public **anon** key;
-private keys stay server-side. See [`.env.example`](.env.example) and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Phase 1 lays the backend **foundation** without changing the app: the pages
+still render mock data. What exists now:
+
+- **Schema + migrations** in [`supabase/migrations/`](supabase/migrations/) —
+  ideas, contributors, community signals, and status history, mirroring the
+  types in [`src/types/index.ts`](src/types/index.ts).
+- **Seed** ([`supabase/seed.sql`](supabase/seed.sql)) mirroring the current mock
+  data, so a local database holds the same content the UI shows.
+- **Row Level Security** enabled on every table. `ideas`, `idea_signals`, and
+  `idea_status_events` are publicly readable; **`contributors` is intentionally
+  locked** (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)). There are no
+  write policies yet.
+- A **guarded client** ([`src/lib/supabase.ts`](src/lib/supabase.ts)) that reads
+  `VITE_SUPABASE_*` env vars. It is **not imported by any page yet** — wiring
+  queries is Phase 2.
+
+### Run the database locally
+
+Requires Docker. Nothing here touches a hosted project.
+
+```bash
+npm run db:start   # boots the local Supabase stack
+npm run db:reset   # applies migrations + seed.sql to the local DB
+```
+
+Regenerate the typed schema after migration changes:
+
+```bash
+npm run gen:types  # overwrites src/types/database.ts from the local DB
+```
+
+The client will only ever hold the public **anon** key; private/service-role
+keys stay server-side and must never be `VITE_`-prefixed. See
+[`.env.example`](.env.example) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+Later phases add authentication, real submissions, and live community signals —
+see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Repository structure
 
@@ -105,8 +142,9 @@ src/
   pages/         One component per route
   data/          Static demonstration data + wizard question config
   types/         Domain TypeScript types (Idea, Contributor, signals, …)
-  lib/           Small helpers (formatting, metadata maps, hooks)
+  lib/           Small helpers (formatting, metadata maps, hooks, supabase client)
   styles/        Design tokens (theme.css)
+supabase/        config.toml, migrations/, seed.sql (Phase 1 backend foundation)
 docs/            VISION, ROADMAP, ARCHITECTURE
 public/          404.html (SPA fallback), CNAME, .nojekyll, favicon
 .github/

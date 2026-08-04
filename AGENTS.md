@@ -56,6 +56,23 @@ Trailheads repository. Read it before making changes.
 - Vite `base` is `'/'` for the production custom domain. Don't hardcode subpath
   assumptions.
 
+## Database & migrations (Supabase)
+
+- **Migrations are the source of truth.** Change the schema by adding a new file
+  in `supabase/migrations/` (via `npm run db:diff` or by hand) — never by editing
+  applied migrations or the database directly. Regenerate `src/types/database.ts`
+  with `npm run gen:types` after schema changes.
+- **Never expose private contributor fields** through RLS. `contributors` is
+  intentionally locked; any public exposure must go through a deliberately
+  designed safe projection (see `docs/ARCHITECTURE.md`), never email, auth
+  identifiers, contact permission, or other private data.
+- **RLS on every table.** Add read/write policies deliberately and minimally; no
+  blanket write policies.
+- `idea_signals` is a count-based placeholder, **not** the final voting model —
+  don't build voting on it (see `docs/ARCHITECTURE.md`).
+- The Supabase client (`src/lib/supabase.ts`) holds only the public anon key.
+  Never put a service-role key or other secret in a `VITE_`-prefixed variable.
+
 ## Working conventions
 
 - **Inspect existing patterns before replacing them.** Match the established
