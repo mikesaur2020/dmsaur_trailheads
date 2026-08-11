@@ -62,6 +62,8 @@ export type WillingnessToPay = 'no' | 'maybe' | 'yes'
 
 /** A single entry in an idea's status history timeline. */
 export interface StatusEvent {
+  /** Hosted row id, when the event comes from the database. Mock events omit it. */
+  id?: string
   status: IdeaStatus
   /** ISO date (YYYY-MM-DD). */
   date: string

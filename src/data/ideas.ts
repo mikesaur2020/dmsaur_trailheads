@@ -41,6 +41,8 @@ export const IDEAS: Idea[] = [
     currentWorkaround:
       'People tap the tank and listen, track it with tally marks on paper, or simply refill far more often than needed.',
     willingnessToPay: 'yes',
+    // Fallback/dev status history — used only when hosted idea_status_events is
+    // unavailable (see src/services/ideas.ts). Not production source-of-truth.
     statusHistory: [
       { status: 'submitted', date: '2026-05-12', note: 'Idea shared by a contributor.' },
       { status: 'reviewing', date: '2026-05-18', note: 'Initial read-through for clarity and scope.' },

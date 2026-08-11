@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
+  CalendarClock,
   CalendarDays,
   CircleDollarSign,
   Clock,
@@ -17,8 +18,12 @@ import { ComingLaterPanel } from '../components/ComingLater'
 import { SIGNAL_META, STATUS_META } from '../lib/meta'
 import { formatDate } from '../lib/format'
 import { EXAMPLE_IDEA } from '../data/ideas'
-import type { WillingnessToPay } from '../types'
+import { getIdeaBySlug, getIdeaStatusEvents, type IdeasSource } from '../services/ideas'
+import type { StatusEvent, WillingnessToPay } from '../types'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+
+/** The slug this fixed example route represents. */
+const EXAMPLE_SLUG = 'example'
 
 const WILLINGNESS_LABEL: Record<WillingnessToPay, string> = {
   no: 'Not likely to pay',
@@ -57,9 +62,80 @@ function DetailRow({
   )
 }
 
+/** Loading placeholder for the status-history timeline. */
+function StatusHistorySkeleton() {
+  return (
+    <ol className="mt-4 space-y-4 border-l border-line pl-6" aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <li key={i} className="relative">
+          <span className="absolute -left-[1.65rem] top-1 size-3 rounded-full bg-surface-2 ring-4 ring-bg" />
+          <div className="animate-pulse space-y-2">
+            <div className="h-5 w-40 rounded-full bg-surface-2" />
+            <div className="h-4 w-3/4 rounded bg-surface-2" />
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** Stable React key for a status event (hosted id when present; else composite). */
+function eventKey(event: StatusEvent, index: number): string {
+  return event.id ?? `${event.status}-${event.date}-${index}`
+}
+
 export function IdeaExample() {
+  // The rest of the page continues to render the static mock example. Only the
+  // status-history section is connected to hosted Supabase (Phase 2B.2).
   const idea = EXAMPLE_IDEA
   useDocumentTitle(idea.title)
+
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [events, setEvents] = useState<StatusEvent[]>([])
+  const [historySource, setHistorySource] = useState<IdeasSource>('mock')
+
+  useEffect(() => {
+    // Runs once on mount; historyLoading starts true from useState.
+    let alive = true
+    ;(async () => {
+      // Resolve the hosted idea for this slug to obtain its id.
+      const ideaResult = await getIdeaBySlug(EXAMPLE_SLUG)
+      if (!alive) return
+
+      // Config/lookup failure → mock status history (page stays usable).
+      if (ideaResult.source === 'mock') {
+        setEvents(EXAMPLE_IDEA.statusHistory ?? [])
+        setHistorySource('mock')
+        setHistoryLoading(false)
+        return
+      }
+
+      // Successful lookup, but no matching hosted idea → real empty state.
+      if (!ideaResult.idea) {
+        setEvents([])
+        setHistorySource('supabase')
+        setHistoryLoading(false)
+        return
+      }
+
+      // Matching hosted idea → load its status events.
+      const eventsResult = await getIdeaStatusEvents(ideaResult.idea.id)
+      if (!alive) return
+      setEvents(eventsResult.events)
+      setHistorySource(eventsResult.source)
+      setHistoryLoading(false)
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Show the section while loading, when there are events, or whenever the data
+  // came from a successful hosted query (so 0 hosted rows renders the empty
+  // state). A mock source with no events hides the section, as before.
+  const showHistory =
+    historyLoading || events.length > 0 || historySource === 'supabase'
 
   return (
     <div className="py-14 sm:py-16">
@@ -187,30 +263,59 @@ export function IdeaExample() {
           </div>
         </section>
 
-        {/* Status history */}
-        {idea.statusHistory && idea.statusHistory.length > 0 && (
+        {/* Status history — connected to hosted Supabase (Phase 2B.2) */}
+        {showHistory && (
           <section className="mt-8">
             <h2 className="text-lg font-semibold text-text">Status history</h2>
-            <ol className="mt-4 space-y-4 border-l border-line pl-6">
-              {idea.statusHistory.map((event) => (
-                <li key={event.status} className="relative">
-                  <span
-                    className="absolute -left-[1.65rem] top-1 size-3 rounded-full ring-4 ring-bg"
-                    style={{ backgroundColor: STATUS_META[event.status].colorVar }}
-                    aria-hidden="true"
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusPill status={event.status} />
-                    <span className="text-xs text-muted tabular-nums">
-                      {formatDate(event.date)}
-                    </span>
-                  </div>
-                  {event.note && (
-                    <p className="mt-1 text-sm text-muted">{event.note}</p>
-                  )}
-                </li>
-              ))}
-            </ol>
+
+            {import.meta.env.DEV &&
+              !historyLoading &&
+              historySource === 'mock' && (
+                <p className="mt-1 text-xs text-muted">
+                  Showing sample status history — Supabase isn’t configured or was
+                  unavailable. This note appears in development only.
+                </p>
+              )}
+
+            {historyLoading ? (
+              <StatusHistorySkeleton />
+            ) : events.length > 0 ? (
+              <ol className="mt-4 space-y-4 border-l border-line pl-6">
+                {events.map((event, index) => (
+                  <li key={eventKey(event, index)} className="relative">
+                    <span
+                      className="absolute -left-[1.65rem] top-1 size-3 rounded-full ring-4 ring-bg"
+                      style={{
+                        backgroundColor: STATUS_META[event.status].colorVar,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill status={event.status} />
+                      <span className="text-xs text-muted tabular-nums">
+                        {formatDate(event.date)}
+                      </span>
+                    </div>
+                    {event.note && (
+                      <p className="mt-1 text-sm text-muted">{event.note}</p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-line bg-surface-2/40 p-5">
+                <CalendarClock
+                  className="mt-0.5 size-5 shrink-0 text-muted"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="font-medium text-text">No journey updates yet</p>
+                  <p className="mt-0.5 text-sm text-muted">
+                    This idea’s journey will appear here as it progresses.
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
