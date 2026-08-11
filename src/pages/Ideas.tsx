@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { Container } from '../components/Container'
 import { SectionHeading } from '../components/SectionHeading'
@@ -6,7 +6,7 @@ import { IdeaCard } from '../components/IdeaCard'
 import { EmptyState } from '../components/EmptyState'
 import { Notice } from '../components/Notice'
 import { Button } from '../components/Button'
-import { IDEAS } from '../data/ideas'
+import { getIdeas, type IdeasSource } from '../services/ideas'
 import { CATEGORY_META, CATEGORY_ORDER, JOURNEY, STATUS_META } from '../lib/meta'
 import type { Category, Idea, IdeaStatus } from '../types'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -29,17 +29,54 @@ const selectClasses = cn(
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
 )
 
+/** Lightweight placeholder shown while ideas load. Not a redesign — same grid. */
+function IdeaCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
+      <div className="animate-pulse space-y-3">
+        <div className="flex gap-2">
+          <div className="h-5 w-24 rounded-full bg-surface-2" />
+          <div className="h-5 w-20 rounded-full bg-surface-2" />
+        </div>
+        <div className="h-5 w-3/4 rounded bg-surface-2" />
+        <div className="h-4 w-full rounded bg-surface-2" />
+        <div className="h-4 w-5/6 rounded bg-surface-2" />
+        <div className="mt-4 h-4 w-1/2 rounded bg-surface-2" />
+      </div>
+    </div>
+  )
+}
+
 export function Ideas() {
   useDocumentTitle('Ideas')
 
+  // Data-source state (mock until the async load resolves).
+  const [loading, setLoading] = useState(true)
+  const [ideas, setIdeas] = useState<Idea[]>([])
+  const [source, setSource] = useState<IdeasSource>('mock')
+
+  // Filter/sort UI state (unchanged behavior, now over the loaded set).
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<IdeaStatus | 'all'>('all')
   const [category, setCategory] = useState<Category | 'all'>('all')
   const [sort, setSort] = useState<SortKey>('newest')
 
+  useEffect(() => {
+    let alive = true
+    getIdeas().then((result) => {
+      if (!alive) return
+      setIdeas(result.ideas)
+      setSource(result.source)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const filtered = IDEAS.filter((idea) => {
+    const filtered = ideas.filter((idea) => {
       if (status !== 'all' && idea.status !== status) return false
       if (category !== 'all' && idea.category !== category) return false
       if (q) {
@@ -55,7 +92,7 @@ export function Ideas() {
       return sort === 'newest' ? -cmp : cmp
     })
     return sorted
-  }, [query, status, category, sort])
+  }, [ideas, query, status, category, sort])
 
   const hasActiveFilters =
     query.trim() !== '' || status !== 'all' || category !== 'all'
@@ -75,10 +112,13 @@ export function Ideas() {
           starting point — not a finished product.
         </SectionHeading>
 
-        <Notice className="mt-6">
-          The ideas below are demonstration data for this skeleton. Nothing here
-          is live, and the signal counts are illustrative only.
-        </Notice>
+        {/* Dev-only fallback indicator. Never shown in production. */}
+        {import.meta.env.DEV && !loading && source === 'mock' && (
+          <Notice className="mt-6">
+            Showing local sample data — Supabase isn’t configured or was
+            unavailable. This notice appears in development only.
+          </Notice>
+        )}
 
         {/* Controls */}
         <div className="mt-8 rounded-2xl border border-line bg-surface p-4 shadow-sm">
@@ -165,32 +205,46 @@ export function Ideas() {
               </select>
             </div>
             <p className="text-sm text-muted" role="status" aria-live="polite">
-              {results.length} {results.length === 1 ? 'idea' : 'ideas'}
+              {loading
+                ? 'Loading…'
+                : `${results.length} ${results.length === 1 ? 'idea' : 'ideas'}`}
             </p>
           </div>
         </div>
 
         {/* Results */}
-        {results.length > 0 ? (
+        {loading ? (
+          <div
+            className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+            aria-hidden="true"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <IdeaCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : results.length > 0 ? (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((idea) => (
               <IdeaCard key={idea.id} idea={idea} />
             ))}
           </div>
-        ) : (
+        ) : hasActiveFilters ? (
           <div className="mt-8">
             <EmptyState
               title="No ideas match your filters"
               action={
-                hasActiveFilters ? (
-                  <Button variant="secondary" onClick={resetFilters}>
-                    Clear filters
-                  </Button>
-                ) : undefined
+                <Button variant="secondary" onClick={resetFilters}>
+                  Clear filters
+                </Button>
               }
             >
-              Try a different search term or clear the filters to see every
-              demonstration idea.
+              Try a different search term or clear the filters.
+            </EmptyState>
+          </div>
+        ) : (
+          <div className="mt-8">
+            <EmptyState title="No ideas yet">
+              New ideas will appear here as they’re shared.
             </EmptyState>
           </div>
         )}

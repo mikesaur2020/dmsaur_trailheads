@@ -8,8 +8,8 @@
 interface ImportMetaEnv {
   /** Public Supabase project URL (safe to expose). */
   readonly VITE_SUPABASE_URL?: string
-  /** Public Supabase anon key (safe to expose; constrained by RLS). */
-  readonly VITE_SUPABASE_ANON_KEY?: string
+  /** Public Supabase publishable key (safe to expose; constrained by RLS/grants). */
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
   /** Optional base-path override for the build (see vite.config.ts). */
   readonly VITE_BASE?: string
 }

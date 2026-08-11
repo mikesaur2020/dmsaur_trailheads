@@ -43,6 +43,13 @@ jobs:
 
       - name: Build
         run: npm run build
+        # Browser-safe Supabase config, injected from repository Variables (not
+        # secrets — both values are public: the publishable key is designed to be
+        # browser-visible, and RLS/grants are the security boundary). If unset,
+        # the app intentionally falls back to mock data.
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

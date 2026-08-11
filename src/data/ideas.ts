@@ -1,12 +1,14 @@
 /**
- * Demonstration idea data for the skeleton.
+ * Fallback / development idea data — NOT the production source of truth.
  *
- * This is static mock content — clearly labeled as such throughout the UI. It is
- * NOT live data and nothing here is persisted. The first entry (slug "example")
- * carries the full extended detail rendered on /ideas/example.
+ * As of Phase 2B.1 the Ideas browse page reads live from the hosted database
+ * (via src/services/ideas.ts). This array is used only when Supabase is not
+ * configured or a query fails (graceful fallback), and for local development,
+ * demos, and tests. Production reflects the real hosted `public.ideas` table.
  *
- * Titles describe a problem, frustration, need, or opportunity — never a
- * proposed application. Categories are intentionally varied.
+ * Nothing here is persisted. The first entry (slug "example") carries the full
+ * extended detail rendered on /ideas/example. Titles describe a problem,
+ * frustration, need, or opportunity — never a proposed application.
  */
 import type { Idea } from '../types'
 import { makeSignals } from '../lib/meta'
