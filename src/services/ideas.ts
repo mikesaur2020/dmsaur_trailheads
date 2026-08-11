@@ -5,11 +5,10 @@
  * all database-shape knowledge (snake_case columns, row → domain mapping)
  * isolated here so UI components never see raw column names.
  *
- * Read-only: this module only SELECTs from `public.ideas` and
- * `public.idea_status_events`. It never inserts, updates, or deletes, and it
- * never queries `contributors` or `idea_signals` (contributors is private by
- * design — the public-facing name lives on `ideas.contributor_display`; signals
- * arrive in Phase 2B.3).
+ * Read-only: this module only SELECTs from `public.ideas`,
+ * `public.idea_status_events`, and `public.idea_signals`. It never inserts,
+ * updates, or deletes, and it never queries `contributors` (private by design —
+ * the public-facing name lives on `ideas.contributor_display`).
  *
  * Data-source behavior:
  *   - Supabase not configured        → mock ideas, source 'mock'
@@ -24,10 +23,15 @@
  * `idea_signals` table is out of scope until Phase 2B.3. Extended detail fields
  * are preserved on the mapped model per the domain type.
  */
-import type { Idea, StatusEvent } from '../types'
+import type {
+  CommunitySignal,
+  CommunitySignalKey,
+  Idea,
+  StatusEvent,
+} from '../types'
 import type { Database } from '../types/database'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import { makeSignals } from '../lib/meta'
+import { makeSignals, SIGNAL_META, SIGNAL_ORDER } from '../lib/meta'
 import { IDEAS as MOCK_IDEAS, EXAMPLE_IDEA } from '../data/ideas'
 
 export type IdeasSource = 'supabase' | 'mock'
@@ -50,15 +54,22 @@ export interface StatusEventsResult {
   source: IdeasSource
 }
 
+/** Result of loading an idea's community signal counts (Phase 2B.3). */
+export interface IdeaSignalsResult {
+  signals: CommunitySignal[]
+  source: IdeasSource
+}
+
 type IdeaRow = Database['public']['Tables']['ideas']['Row']
 type StatusEventRow = Database['public']['Tables']['idea_status_events']['Row']
+type IdeaSignalRow = Database['public']['Tables']['idea_signals']['Row']
 
 /** Mock status history used only as a dev/fallback source (never production data). */
 function mockStatusHistory(): StatusEvent[] {
   return EXAMPLE_IDEA.statusHistory ?? []
 }
 
-/** Zero-count community signals — real counts arrive with Phase 2B.3. */
+/** Zero-count community signals (used as the mapIdeaRow default before merge). */
 function emptySignals() {
   return makeSignals({
     'have-problem': 0,
@@ -66,6 +77,49 @@ function emptySignals() {
     'would-test': 0,
     'would-pay': 0,
   })
+}
+
+/** Mock signal counts used only as a dev/fallback source (never production data). */
+function mockSignals(): CommunitySignal[] {
+  return EXAMPLE_IDEA.signals
+}
+
+/**
+ * Build the community-signal array for one idea. Order, labels, and descriptions
+ * come from the frontend SIGNAL_ORDER / SIGNAL_META (the DB only provides key +
+ * count). Every supported key is present; a missing hosted key renders as 0.
+ */
+export function signalsFromCounts(
+  counts: Partial<Record<CommunitySignalKey, number>>,
+): CommunitySignal[] {
+  return SIGNAL_ORDER.map((key) => ({
+    key,
+    label: SIGNAL_META[key].label,
+    description: SIGNAL_META[key].description,
+    count: counts[key] ?? 0,
+  }))
+}
+
+/**
+ * Group hosted idea_signals rows into `idea_id → { key: count }`. Unknown signal
+ * keys (not in SIGNAL_ORDER) are ignored safely, with a dev-only warning.
+ */
+function groupSignalCounts(
+  rows: IdeaSignalRow[],
+): Map<string, Partial<Record<CommunitySignalKey, number>>> {
+  const byIdea = new Map<string, Partial<Record<CommunitySignalKey, number>>>()
+  for (const row of rows) {
+    if (!SIGNAL_ORDER.includes(row.key)) {
+      if (import.meta.env.DEV) {
+        console.warn(`[ideas] Ignoring unrecognized signal key: ${row.key}`)
+      }
+      continue
+    }
+    const entry = byIdea.get(row.idea_id) ?? {}
+    entry[row.key] = row.count
+    byIdea.set(row.idea_id, entry)
+  }
+  return byIdea
 }
 
 /**
@@ -112,10 +166,32 @@ export async function getIdeas(): Promise<IdeasResult> {
 
     if (error) throw error
 
-    // Success — including the valid "zero rows" case. Do NOT fall back to mock.
-    return { ideas: (data ?? []).map(mapIdeaRow), source: 'supabase' }
+    const ideas = (data ?? []).map(mapIdeaRow)
+
+    // Zero ideas → valid empty state; skip the signals query entirely (avoids a
+    // malformed empty `.in()`). Do NOT fall back to mock.
+    if (ideas.length === 0) {
+      return { ideas, source: 'supabase' }
+    }
+
+    // ONE batched query for all loaded ideas' signals (no N+1), grouped by id.
+    const ids = ideas.map((i) => i.id)
+    const { data: signalRows, error: signalError } = await supabase
+      .from('idea_signals')
+      .select('*')
+      .in('idea_id', ids)
+
+    if (signalError) throw signalError
+
+    const countsByIdea = groupSignalCounts(signalRows ?? [])
+    const withSignals = ideas.map((idea) => ({
+      ...idea,
+      signals: signalsFromCounts(countsByIdea.get(idea.id) ?? {}),
+    }))
+
+    return { ideas: withSignals, source: 'supabase' }
   } catch (err) {
-    // Connection/query failure → graceful mock fallback, dev-only warning.
+    // Connection/query failure (ideas or signals) → graceful mock fallback.
     if (import.meta.env.DEV) {
       console.warn(
         '[ideas] Supabase query failed; falling back to mock data.',
@@ -211,5 +287,44 @@ export async function getIdeaStatusEvents(
       )
     }
     return { events: mockStatusHistory(), source: 'mock' }
+  }
+}
+
+/**
+ * Load an idea's community signal counts by idea id. Read-only on
+ * `public.idea_signals`.
+ *
+ * Semantics (Phase 2B.3):
+ *   - not configured   → mock signal counts, source 'mock'
+ *   - query fails      → mock signal counts, source 'mock' (dev warning)
+ *   - query succeeds   → hosted counts, source 'supabase'. Every supported key is
+ *     returned; missing keys are 0, and 0 rows means all-zero. This is NOT a
+ *     failure and does NOT fall back to mock.
+ */
+export async function getIdeaSignals(
+  ideaId: string,
+): Promise<IdeaSignalsResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { signals: mockSignals(), source: 'mock' }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('idea_signals')
+      .select('*')
+      .eq('idea_id', ideaId)
+
+    if (error) throw error
+
+    const counts = groupSignalCounts(data ?? []).get(ideaId) ?? {}
+    return { signals: signalsFromCounts(counts), source: 'supabase' }
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(
+        '[ideas] getIdeaSignals failed; falling back to mock data.',
+        err,
+      )
+    }
+    return { signals: mockSignals(), source: 'mock' }
   }
 }

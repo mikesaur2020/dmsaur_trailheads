@@ -1,10 +1,11 @@
 /**
  * Fallback / development idea data — NOT the production source of truth.
  *
- * As of Phase 2B.1 the Ideas browse page reads live from the hosted database
- * (via src/services/ideas.ts). This array is used only when Supabase is not
- * configured or a query fails (graceful fallback), and for local development,
- * demos, and tests. Production reflects the real hosted `public.ideas` table.
+ * As of Phase 2B the Ideas browse page, status history, and community signal
+ * counts all read live from the hosted database (via src/services/ideas.ts).
+ * This array — including its signal counts and status history — is used only
+ * when Supabase is not configured or a query fails (graceful fallback), and for
+ * local development, demos, and tests. Production reflects the real hosted tables.
  *
  * Nothing here is persisted. The first entry (slug "example") carries the full
  * extended detail rendered on /ideas/example. Titles describe a problem,

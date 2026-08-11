@@ -18,8 +18,14 @@ import { ComingLaterPanel } from '../components/ComingLater'
 import { SIGNAL_META, STATUS_META } from '../lib/meta'
 import { formatDate } from '../lib/format'
 import { EXAMPLE_IDEA } from '../data/ideas'
-import { getIdeaBySlug, getIdeaStatusEvents, type IdeasSource } from '../services/ideas'
-import type { StatusEvent, WillingnessToPay } from '../types'
+import {
+  getIdeaBySlug,
+  getIdeaSignals,
+  getIdeaStatusEvents,
+  signalsFromCounts,
+  type IdeasSource,
+} from '../services/ideas'
+import type { CommunitySignal, StatusEvent, WillingnessToPay } from '../types'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 /** The slug this fixed example route represents. */
@@ -86,44 +92,59 @@ function eventKey(event: StatusEvent, index: number): string {
 
 export function IdeaExample() {
   // The rest of the page continues to render the static mock example. Only the
-  // status-history section is connected to hosted Supabase (Phase 2B.2).
+  // status-history (Phase 2B.2) and community-signals (Phase 2B.3) sections are
+  // connected to hosted Supabase.
   const idea = EXAMPLE_IDEA
   useDocumentTitle(idea.title)
 
-  const [historyLoading, setHistoryLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<StatusEvent[]>([])
-  const [historySource, setHistorySource] = useState<IdeasSource>('mock')
+  const [eventsSource, setEventsSource] = useState<IdeasSource>('mock')
+  const [signals, setSignals] = useState<CommunitySignal[]>(() =>
+    signalsFromCounts({}),
+  )
+  const [signalsSource, setSignalsSource] = useState<IdeasSource>('mock')
 
   useEffect(() => {
-    // Runs once on mount; historyLoading starts true from useState.
+    // Runs once on mount; loading starts true from useState.
     let alive = true
     ;(async () => {
       // Resolve the hosted idea for this slug to obtain its id.
       const ideaResult = await getIdeaBySlug(EXAMPLE_SLUG)
       if (!alive) return
 
-      // Config/lookup failure → mock status history (page stays usable).
+      // Config/lookup failure → mock status history + mock signals (page usable).
       if (ideaResult.source === 'mock') {
         setEvents(EXAMPLE_IDEA.statusHistory ?? [])
-        setHistorySource('mock')
-        setHistoryLoading(false)
+        setEventsSource('mock')
+        setSignals(EXAMPLE_IDEA.signals)
+        setSignalsSource('mock')
+        setLoading(false)
         return
       }
 
-      // Successful lookup, but no matching hosted idea → real empty state.
+      // Successful lookup, no matching hosted idea → real empty status + all-zero
+      // signals (NOT mock).
       if (!ideaResult.idea) {
         setEvents([])
-        setHistorySource('supabase')
-        setHistoryLoading(false)
+        setEventsSource('supabase')
+        setSignals(signalsFromCounts({}))
+        setSignalsSource('supabase')
+        setLoading(false)
         return
       }
 
-      // Matching hosted idea → load its status events.
-      const eventsResult = await getIdeaStatusEvents(ideaResult.idea.id)
+      // Matching hosted idea → load status events + signals in parallel.
+      const [eventsResult, signalsResult] = await Promise.all([
+        getIdeaStatusEvents(ideaResult.idea.id),
+        getIdeaSignals(ideaResult.idea.id),
+      ])
       if (!alive) return
       setEvents(eventsResult.events)
-      setHistorySource(eventsResult.source)
-      setHistoryLoading(false)
+      setEventsSource(eventsResult.source)
+      setSignals(signalsResult.signals)
+      setSignalsSource(signalsResult.source)
+      setLoading(false)
     })()
 
     return () => {
@@ -131,11 +152,11 @@ export function IdeaExample() {
     }
   }, [])
 
-  // Show the section while loading, when there are events, or whenever the data
-  // came from a successful hosted query (so 0 hosted rows renders the empty
+  // Show the status section while loading, when there are events, or whenever the
+  // data came from a successful hosted query (so 0 hosted rows renders the empty
   // state). A mock source with no events hides the section, as before.
   const showHistory =
-    historyLoading || events.length > 0 || historySource === 'supabase'
+    loading || events.length > 0 || eventsSource === 'supabase'
 
   return (
     <div className="py-14 sm:py-16">
@@ -227,14 +248,22 @@ export function IdeaExample() {
           </dl>
         </section>
 
-        {/* Community signals */}
+        {/* Community signals — connected to hosted Supabase (Phase 2B.3) */}
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-text">Community signals</h2>
           <p className="mt-1 text-sm text-muted">
-            Preview counts — not live data, and not editable in this skeleton.
+            Community signals are read-only for now — voting isn’t enabled yet.
           </p>
+
+          {import.meta.env.DEV && !loading && signalsSource === 'mock' && (
+            <p className="mt-1 text-xs text-muted">
+              Showing sample signal counts — Supabase isn’t configured or was
+              unavailable. This note appears in development only.
+            </p>
+          )}
+
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {idea.signals.map((signal) => {
+            {signals.map((signal) => {
               const meta = SIGNAL_META[signal.key]
               const Icon = meta.icon
               return (
@@ -252,9 +281,13 @@ export function IdeaExample() {
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <p className="font-semibold text-text tabular-nums">
-                      {signal.count.toLocaleString('en-US')}
-                    </p>
+                    {loading ? (
+                      <div className="h-5 w-10 animate-pulse rounded bg-surface-2" />
+                    ) : (
+                      <p className="font-semibold text-text tabular-nums">
+                        {signal.count.toLocaleString('en-US')}
+                      </p>
+                    )}
                     <p className="text-sm text-muted">{meta.label}</p>
                   </div>
                 </div>
@@ -269,15 +302,15 @@ export function IdeaExample() {
             <h2 className="text-lg font-semibold text-text">Status history</h2>
 
             {import.meta.env.DEV &&
-              !historyLoading &&
-              historySource === 'mock' && (
+              !loading &&
+              eventsSource === 'mock' && (
                 <p className="mt-1 text-xs text-muted">
                   Showing sample status history — Supabase isn’t configured or was
                   unavailable. This note appears in development only.
                 </p>
               )}
 
-            {historyLoading ? (
+            {loading ? (
               <StatusHistorySkeleton />
             ) : events.length > 0 ? (
               <ol className="mt-4 space-y-4 border-l border-line pl-6">
