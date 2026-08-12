@@ -131,6 +131,25 @@ individual contributor/visitor signal records (one row per person per signal)
 with appropriate uniqueness constraints and RLS, and totals derived through a
 query or a safe aggregate view. That redesign is out of scope for Phase 1.
 
+### Hosted default privileges — the explicit least-privilege convention
+
+Hosted Supabase projects carry project-wide default privileges (roughly
+`ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES
+TO anon, authenticated, service_role`). As a result, **every new table created in
+`public` is automatically granted broad privileges** to the Data API roles at
+creation time — and the local development stack does **not** carry these defaults,
+so a migration can look correctly locked locally while being over-permissive on
+hosted.
+
+**Convention (required for every security-sensitive table):** do not rely on
+granting a subset — a `GRANT SELECT, INSERT` leaves any auto-granted
+`UPDATE`/`DELETE`/`TRUNCATE`/`REFERENCES`/`TRIGGER` in place. Instead, **explicitly
+`REVOKE ALL` from the applicable Data API role(s) and then `GRANT` only the minimum
+privileges required.** Precedents: `lock_anon_writes` (anon/authenticated) and
+`lock_submission_queue_service_role` (service_role on `idea_submissions` →
+`SELECT, INSERT` only). This project does **not** modify the project-wide
+`ALTER DEFAULT PRIVILEGES`; privileges are normalized explicitly per table.
+
 ## Secrets and the client bundle — the critical rule
 
 Vite inlines every `VITE_`-prefixed variable into the JavaScript bundle that
