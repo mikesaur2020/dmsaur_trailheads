@@ -1,9 +1,13 @@
 /**
  * Configuration for the Submit-an-Idea conversational wizard.
  *
- * IMPORTANT: this drives a *demonstration* flow that lives entirely in browser
- * memory. Nothing here is sent, stored, or transmitted. In particular there is
- * NO functional email field — question 7 uses an explanatory placeholder only.
+ * As of Phase 3A.2 this wizard makes a REAL submission: on finish, the answers
+ * are POSTed to the protected `submit-idea` Edge Function (see
+ * src/services/submitIdea.ts) and land in the private moderation queue. Two
+ * fields are collected inline alongside their related questions rather than as
+ * separate steps: a display name (on the recognition step, required unless the
+ * submitter chose anonymous) and an optional contact email (on the contact step,
+ * shown only when contact consent is given).
  *
  * The wizard asks people to describe a problem. It never asks them to name or
  * design an app.
@@ -106,7 +110,7 @@ export const WIZARD_QUESTIONS: WizardQuestion[] = [
       { value: 'yes', label: 'Yes, DMSaur may reach out' },
       { value: 'no', label: 'No, thank you' },
     ],
-    note: 'This skeleton does not collect an email address. When live, contact details will be handled securely and only with your consent.',
+    note: 'If you say yes, you can add an email below. It is stored privately, used only to follow up about your idea, and never shown publicly.',
   },
   {
     id: 'recognition',

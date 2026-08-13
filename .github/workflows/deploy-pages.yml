@@ -50,6 +50,9 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Public Turnstile site key for the Submit widget (public, like the keys
+          # above). If unset, the submit form shows a "not configured" state.
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
