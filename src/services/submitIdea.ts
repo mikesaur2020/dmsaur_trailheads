@@ -90,17 +90,20 @@ export function buildSubmitPayload(
  */
 export async function submitIdea(payload: SubmitPayload): Promise<SubmitResult> {
   const url = import.meta.env.VITE_SUPABASE_URL
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  if (!url || !key) return { ok: false, kind: 'not_configured' }
+  if (!url) return { ok: false, kind: 'not_configured' }
 
   let res: Response
   try {
     res = await fetch(`${url}/functions/v1/submit-idea`, {
       method: 'POST',
+      // submit-idea is a PUBLIC, unauthenticated endpoint (verify_jwt=false); its
+      // security boundary is Turnstile + validation + honeypot + idempotency, not
+      // an API key. Send ONLY Content-Type so the browser's CORS preflight requests
+      // just `content-type` — the sole header the function's CORS policy allows.
+      // Sending apikey/Authorization adds preflight headers the function does not
+      // allowlist, and the browser blocks the request before it is sent.
       headers: {
         'Content-Type': 'application/json',
-        apikey: key,
-        Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify(payload),
     })
