@@ -7,7 +7,9 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config([
-  globalIgnores(['dist', 'node_modules']),
+  // dist/node_modules are build/deps; supabase/.temp holds the local stack's
+  // generated (gitignored) runtime files — none should be linted.
+  globalIgnores(['dist', 'node_modules', 'supabase/.temp']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -17,6 +17,14 @@ export type IdeaStatus =
   | 'beta'
   | 'released'
 
+/** Lifecycle status of a queued submission (moderation pipeline). */
+export type SubmissionStatus =
+  | 'pending'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'published'
+
 /** Broad problem domains. Deliberately not app-centric. */
 export type Category =
   | 'camping-rv'

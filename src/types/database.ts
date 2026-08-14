@@ -14,6 +14,7 @@ import type {
   CommunitySignalKey,
   IdeaStatus,
   RecognitionPreference,
+  SubmissionStatus,
   WillingnessToPay,
 } from './index'
 
@@ -185,11 +186,151 @@ export interface Database {
           },
         ]
       }
+      idea_submissions: {
+        Row: {
+          id: string
+          status: SubmissionStatus
+          problem_statement: string
+          contributor_story: string | null
+          who_experiences_it: string | null
+          frequency: string | null
+          current_workaround: string | null
+          willingness_to_pay: WillingnessToPay | null
+          recognition: RecognitionPreference
+          contributor_display: string | null
+          contact_consent: boolean
+          contact_email: string | null
+          moderator_notes: string | null
+          rejection_reason: string | null
+          published_idea_id: string | null
+          idempotency_key: string
+          created_at: string
+          updated_at: string
+          reviewed_at: string | null
+          approved_at: string | null
+          published_at: string | null
+        }
+        Insert: {
+          id?: string
+          status?: SubmissionStatus
+          problem_statement: string
+          contributor_story?: string | null
+          who_experiences_it?: string | null
+          frequency?: string | null
+          current_workaround?: string | null
+          willingness_to_pay?: WillingnessToPay | null
+          recognition: RecognitionPreference
+          contributor_display?: string | null
+          contact_consent?: boolean
+          contact_email?: string | null
+          moderator_notes?: string | null
+          rejection_reason?: string | null
+          published_idea_id?: string | null
+          idempotency_key: string
+          created_at?: string
+          updated_at?: string
+          reviewed_at?: string | null
+          approved_at?: string | null
+          published_at?: string | null
+        }
+        Update: {
+          id?: string
+          status?: SubmissionStatus
+          problem_statement?: string
+          contributor_story?: string | null
+          who_experiences_it?: string | null
+          frequency?: string | null
+          current_workaround?: string | null
+          willingness_to_pay?: WillingnessToPay | null
+          recognition?: RecognitionPreference
+          contributor_display?: string | null
+          contact_consent?: boolean
+          contact_email?: string | null
+          moderator_notes?: string | null
+          rejection_reason?: string | null
+          published_idea_id?: string | null
+          idempotency_key?: string
+          created_at?: string
+          updated_at?: string
+          reviewed_at?: string | null
+          approved_at?: string | null
+          published_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'idea_submissions_published_idea_id_fkey'
+            columns: ['published_idea_id']
+            isOneToOne: false
+            referencedRelation: 'ideas'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      moderators: {
+        Row: { id: string; created_at: string }
+        Insert: { id: string; created_at?: string }
+        Update: { id?: string; created_at?: string }
+        Relationships: []
+      }
+      moderation_events: {
+        Row: {
+          id: string
+          submission_id: string | null
+          action: string
+          note: string | null
+          actor: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          submission_id?: string | null
+          action: string
+          note?: string | null
+          actor?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          submission_id?: string | null
+          action?: string
+          note?: string | null
+          actor?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'moderation_events_submission_id_fkey'
+            columns: ['submission_id']
+            isOneToOne: false
+            referencedRelation: 'idea_submissions'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      is_moderator: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      reject_submission: {
+        Args: { p_submission_id: string; p_note?: string | null }
+        Returns: undefined
+      }
+      approve_submission: {
+        Args: {
+          p_submission_id: string
+          p_title: string
+          p_summary: string
+          p_category: Category
+        }
+        Returns: string
+      }
+    }
     Enums: {
       idea_status: IdeaStatus
+      submission_status: SubmissionStatus
       category: Category
       recognition_preference: RecognitionPreference
       willingness_to_pay: WillingnessToPay
