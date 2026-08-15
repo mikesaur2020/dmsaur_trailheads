@@ -60,17 +60,15 @@ export function Footer() {
                   <ExternalLink className="size-3.5" aria-hidden="true" />
                 </a>
               </li>
-              <li className="inline-flex items-center gap-2">
-                Privacy
-                <span className="text-[0.7rem] uppercase tracking-wide text-accent">
-                  Coming later
-                </span>
+              <li>
+                <Link to="/privacy" className="hover:text-text">
+                  Privacy
+                </Link>
               </li>
-              <li className="inline-flex items-center gap-2">
-                Terms
-                <span className="text-[0.7rem] uppercase tracking-wide text-accent">
-                  Coming later
-                </span>
+              <li>
+                <Link to="/terms" className="hover:text-text">
+                  Terms
+                </Link>
               </li>
             </ul>
           </div>

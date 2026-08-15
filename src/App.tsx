@@ -7,6 +7,8 @@ import { IdeaDetail } from './pages/IdeaDetail'
 import { Submit } from './pages/Submit'
 import { Contributors } from './pages/Contributors'
 import { About } from './pages/About'
+import { Privacy } from './pages/Privacy'
+import { Terms } from './pages/Terms'
 import { SignIn } from './pages/SignIn'
 import { NotFound } from './pages/NotFound'
 import { AuthProvider } from './lib/auth'
@@ -34,6 +36,8 @@ export function App() {
         <Route path="submit" element={<Submit />} />
         <Route path="contributors" element={<Contributors />} />
         <Route path="about" element={<About />} />
+        <Route path="privacy" element={<Privacy />} />
+        <Route path="terms" element={<Terms />} />
         <Route path="signin" element={<SignIn />} />
         <Route path="*" element={<NotFound />} />
       </Route>

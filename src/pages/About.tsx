@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowRight, ExternalLink } from 'lucide-react'
 import { Container } from '../components/Container'
 import { SectionHeading } from '../components/SectionHeading'
@@ -70,12 +71,19 @@ export function About() {
           </p>
         </Prose>
 
-        <Prose title="Legal and privacy, before anything goes live">
+        <Prose title="How your submissions are handled">
           <p>
-            This is an early skeleton. Before real submissions are enabled, clear
-            terms and a privacy policy will be added so everyone knows exactly how
-            ideas and contact preferences are handled. Until then, nothing you do
-            here is stored.
+            Submissions are stored securely so they can be reviewed, and an
+            approved idea may be published for others to see. Any contact
+            information you choose to share stays private and is never published.
+            See the{' '}
+            <Link
+              to="/privacy"
+              className="font-medium text-brand hover:text-brand-strong"
+            >
+              Privacy Policy
+            </Link>{' '}
+            for the full details.
           </p>
         </Prose>
 
