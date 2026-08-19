@@ -3,6 +3,7 @@ import { RootLayout } from './layouts/RootLayout'
 import { Home } from './pages/Home'
 import { Ideas } from './pages/Ideas'
 import { IdeaExample } from './pages/IdeaExample'
+import { IdeaDetail } from './pages/IdeaDetail'
 import { Submit } from './pages/Submit'
 import { Contributors } from './pages/Contributors'
 import { About } from './pages/About'
@@ -29,6 +30,7 @@ export function App() {
         <Route index element={<Home />} />
         <Route path="ideas" element={<Ideas />} />
         <Route path="ideas/example" element={<IdeaExample />} />
+        <Route path="ideas/:slug" element={<IdeaDetail />} />
         <Route path="submit" element={<Submit />} />
         <Route path="contributors" element={<Contributors />} />
         <Route path="about" element={<About />} />

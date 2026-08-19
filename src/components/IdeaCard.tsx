@@ -7,9 +7,8 @@ import { SignalRow } from './SignalStat'
 import { formatDate } from '../lib/format'
 
 /**
- * Responsive idea card. Every card links to the single static example detail
- * page (/ideas/example) in this skeleton — there is one polished example rather
- * than a live detail page per idea.
+ * Responsive idea card. Each card links to that idea's own detail page at
+ * /ideas/:slug, which loads the published idea from Supabase.
  */
 export function IdeaCard({ idea }: { idea: Idea }) {
   return (
@@ -21,9 +20,9 @@ export function IdeaCard({ idea }: { idea: Idea }) {
 
       <h3 className="text-lg font-semibold leading-snug tracking-tight text-text">
         <Link
-          to="/ideas/example"
+          to={`/ideas/${idea.slug}`}
           className="after:absolute after:inset-0 focus:outline-none"
-          aria-label={`${idea.title} — view example idea detail`}
+          aria-label={`${idea.title} — view idea`}
         >
           <span className="relative">{idea.title}</span>
         </Link>
@@ -47,7 +46,7 @@ export function IdeaCard({ idea }: { idea: Idea }) {
         className="pointer-events-none mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
         aria-hidden="true"
       >
-        View example
+        View idea
         <ArrowRight className="size-4" />
       </span>
     </article>
