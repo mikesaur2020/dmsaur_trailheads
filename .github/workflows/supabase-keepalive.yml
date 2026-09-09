@@ -34,7 +34,7 @@ jobs:
           # Public, browser-safe config reused from the existing repository
           # Variables (the same ones the deploy workflow injects at build time).
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
 
