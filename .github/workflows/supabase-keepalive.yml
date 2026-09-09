@@ -1,0 +1,75 @@
+name: Supabase Keepalive
+
+# Tiny, read-only health check that keeps the free Supabase project active.
+#
+# Twice a day it performs ONE public GET against the same read-only path the
+# site itself uses (`/rest/v1/ideas?select=id&limit=1`), using the PUBLIC
+# publishable/anon key. This generates a little legitimate database activity so
+# the free project is less likely to be paused for inactivity, and doubles as a
+# basic backend health check.
+#
+# It makes NO database changes, uses NO service-role or admin credentials, and
+# does not bypass RLS — `public.ideas` is readable by the anon role by policy.
+
+on:
+  # Roughly every 12 hours (00:00 and 12:00 UTC). GitHub cron runs in UTC and
+  # only fires from the default branch, so this activates once merged to main.
+  schedule:
+    - cron: "0 */12 * * *"
+  # Lets the check be run on demand from the Actions tab.
+  workflow_dispatch:
+
+# Least privilege: read-only token, no write scopes.
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Read-only Supabase health check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query public ideas (read-only)
+        env:
+          # Public, browser-safe config reused from the existing repository
+          # Variables (the same ones the deploy workflow injects at build time).
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_KEY:-}" ]; then
+            echo "::error::Missing Supabase config — set repository Variables VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY."
+            exit 1
+          fi
+
+          # Belt-and-suspenders: never let the key surface in the log, even though
+          # it is the public publishable key.
+          echo "::add-mask::$SUPABASE_KEY"
+
+          # ONE tiny read-only request. No --fail: we read the HTTP code ourselves
+          # so we can tell success / HTTP error / network-timeout apart. Retries
+          # cover transient blips only (timeouts, 5xx, connection refused).
+          http_code=$(curl -sS -o response.txt -w '%{http_code}' \
+            --max-time 20 --retry 2 --retry-delay 5 --retry-connrefused \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Accept: application/json" \
+            "$SUPABASE_URL/rest/v1/ideas?select=id&limit=1") || {
+              echo "::error::Supabase health check FAILED — network/timeout (curl could not complete the request)."
+              exit 1
+            }
+
+          bytes=$(wc -c < response.txt | tr -d ' ')
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            # An empty result ([]) is still a healthy response — we only care that
+            # Supabase executed the query.
+            echo "✅ Supabase OK — HTTP $http_code, ${bytes} bytes. Database reachable; keepalive read succeeded."
+            exit 0
+          fi
+
+          echo "::error::Supabase health check FAILED — HTTP $http_code."
+          # Small, non-sensitive snippet of the error body (public read; no secrets).
+          echo "Response snippet:"
+          head -c 300 response.txt || true
+          exit 1
